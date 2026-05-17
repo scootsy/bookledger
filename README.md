@@ -8,8 +8,27 @@ Calibre / Calibre-Web, Grimoire, Readarr, etc. on a home server (Unraid,
 TrueNAS, plain Docker host). It does not download or replace any of those
 tools — it aggregates evidence from them.
 
-**Status:** v0.1 scaffold. Schema, container layout, and UI shell are in
-place; adapters and matching are stubbed.
+**Status:** v0.1. Filesystem scanner, matcher, sources/tags/works UI all
+working. Audiobookshelf and Calibre adapters still stubbed.
+
+## Read-only by construction
+
+BookLedger never writes to your library or download folders. Three
+layers enforce this:
+
+1. The docker-compose example mounts every library/download volume
+   with `:ro`. The Linux kernel rejects any write attempt.
+2. The scanner code only ever calls read-mode operations
+   (`open(path, "rb")`, `zipfile.ZipFile(path, "r")`,
+   `mutagen.File(path)` without `save()`). There are no `os.unlink`,
+   `os.rename`, `shutil`, or write-mode opens anywhere in the
+   scanner module — verifiable with `grep`.
+3. BookLedger's own database lives in `/config`, completely separate
+   from your library mounts.
+
+If you'd rather not rely on the compose example, you can mount your
+libraries however you like — the `:ro` flag on each volume is the only
+hard requirement.
 
 ## Architecture
 
@@ -101,15 +120,38 @@ npm install
 npm run dev
 ```
 
+## What works today
+
+- **Filesystem scanner.** Walks any number of ebook and audiobook roots
+  you configure from the UI. Reads embedded ePub metadata (title,
+  author, ISBN/ASIN, series, publication year) and audiobook metadata
+  via `mutagen` (title, author, narrator, duration, bitrate). Falls
+  back to path-based heuristics when files have no tags.
+- **Matcher.** Strong match on identifiers (ISBN/ASIN); probable match
+  on normalized title + author; fuzzy match (rapidfuzz) for typos and
+  variants; ambiguous matches land in a review queue. Audiobook +
+  ebook copies of the same work are linked automatically.
+- **Library page.** Filter by coverage (complete / missing audiobook /
+  missing ebook / etc.), filter by tags (include + exclude), search by
+  title or author, paginated.
+- **Work detail.** All assets for a work, identifiers, editable tags,
+  audience, free-form notes.
+- **Tag system.** Twelve sensible defaults seeded on first boot
+  (`kids`, `ya`, `comic`, `reference`, `religious`, `textbook`,
+  `low-priority`, `wishlist`, `favorite-author`, `ignored`,
+  `audiobook-may-not-exist`, `needs-review`). Add/remove your own.
+- **Background scans.** Trigger from the dashboard or per-source, poll
+  status, see per-root totals once finished.
+
 ## What's planned next
 
-1. Filesystem scanner (epub/mobi/azw3/pdf + m4b/mp3 with embedded metadata).
-2. Audiobookshelf adapter.
-3. Calibre adapter (reads `metadata.db` read-only).
-4. Matcher: identifier → fuzzy title+author → review queue.
-5. Open Library + Audible (Audnexus) lookups to answer "does an audiobook
-   even exist?"
-6. Dashboard with coverage badges, missing-format reports, tag filters.
+1. Audiobookshelf adapter (reads ABS as another source alongside
+   filesystem).
+2. Calibre adapter (`metadata.db` read-only).
+3. Open Library + Audible (Audnexus) lookups so the UI can show
+   "audiobook exists upstream" vs "audiobook may not exist".
+4. Review queue UX (accept / reject / merge / split).
+5. Automated audience detection for picture books.
 
 ## What's out of scope
 

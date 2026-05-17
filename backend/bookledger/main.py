@@ -1,11 +1,23 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
+from sqlmodel import Session
 
-from bookledger.api import review, sources, stats, tags, works
+from bookledger.api import review, scan, sources, stats, tags, works
+from bookledger.db import engine
+from bookledger.services.seed import seed_default_tags
 
-app = FastAPI(title="BookLedger", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    with Session(engine) as session:
+        seed_default_tags(session)
+    yield
+
+
+app = FastAPI(title="BookLedger", version="0.1.0", lifespan=lifespan)
 
 
 @app.get("/api/health", tags=["meta"])
@@ -18,6 +30,7 @@ app.include_router(works.router, prefix="/api/works", tags=["works"])
 app.include_router(sources.router, prefix="/api/sources", tags=["sources"])
 app.include_router(tags.router, prefix="/api/tags", tags=["tags"])
 app.include_router(review.router, prefix="/api/review", tags=["review"])
+app.include_router(scan.router, prefix="/api/scan", tags=["scan"])
 
 
 _frontend_dir = Path(__file__).parent / "static"
