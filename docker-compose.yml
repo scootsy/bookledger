@@ -1,0 +1,17 @@
+services:
+  bookledger:
+    build: .
+    image: bookledger:local
+    container_name: bookledger
+    ports:
+      - "8787:8787"
+    environment:
+      - TZ=America/Denver
+      - BOOKLEDGER_CONFIG_DIR=/config
+    volumes:
+      - ./.data/config:/config
+      - ./.data/libraries/books:/libraries/books:ro
+      - ./.data/libraries/audiobooks:/libraries/audiobooks:ro
+      - ./.data/downloads/books:/downloads/books:ro
+      - ./.data/downloads/audiobooks:/downloads/audiobooks:ro
+    restart: unless-stopped

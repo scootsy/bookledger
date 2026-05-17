@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+.svelte-kit/
+build/
+dist/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Local data
+*.db
+*.db-shm
+*.db-wal
+/data/
+/config/
